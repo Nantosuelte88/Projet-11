@@ -1,6 +1,6 @@
 import pytest
 from flask import Flask, render_template
-from server import app
+from server import app, loadClubs, loadCompetitions
 
 from server import index, showSummary
 
@@ -9,6 +9,24 @@ def client():
     app.config['TESTING'] = True #activer le mode de test de Flask
     with app.test_client() as client: #créer un client de test
         yield client #retourner le client
+
+def test_load_clubs():
+    """
+    Teste le chargement des clubs depuis le fichier JSON.
+    """
+    clubs = loadClubs()
+    assert clubs is not None
+    assert isinstance(clubs, list)
+    assert len(clubs) > 0
+
+def test_load_competitions():
+    """
+    Teste le chargement des compétitions depuis le fichier JSON.
+    """
+    competitions = loadCompetitions()
+    assert competitions is not None
+    assert isinstance(competitions, list)
+    assert len(competitions) > 0
 
 def test_should_status_code_ok(client):
     """
