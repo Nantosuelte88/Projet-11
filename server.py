@@ -1,5 +1,5 @@
 import json
-from flask import Flask,render_template,request,redirect,flash,url_for
+from flask import Flask, render_template, request, redirect, flash, url_for
 
 
 def loadClubs():
@@ -43,11 +43,27 @@ def book(competition,club):
 
 @app.route('/purchasePlaces',methods=['POST'])
 def purchasePlaces():
-    competition = [c for c in competitions if c['name'] == request.form['competition']][0]
-    club = [c for c in clubs if c['name'] == request.form['club']][0]
+    competition_name = request.form['competition']
+    club_name = request.form['club']
     placesRequired = int(request.form['places'])
-    competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
-    flash('Great-booking complete!')
+
+    # Find the competition and club
+    competition = next((c for c in competitions if c['name'] == competition_name), None)
+    club = next((c for c in clubs if c['name'] == club_name), None)
+
+    if competition and club:
+        # Check if there are enough places available
+        if int(competition['numberOfPlaces']) >= placesRequired:
+            # Deduct places from the competition
+            competition['numberOfPlaces'] = int(competition['numberOfPlaces']) - placesRequired
+            # Deduct points from the club
+            club['points'] = str(int(club['points']) - placesRequired)
+            flash('Great-booking complete!')
+        else:
+            flash('Not enough places available for booking!')
+    else:
+        flash('Competition or club not found!')
+
     return render_template('welcome.html', club=club, competitions=competitions)
 
 
