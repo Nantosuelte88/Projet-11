@@ -43,11 +43,35 @@ def book(competition,club):
 
 @app.route('/purchasePlaces',methods=['POST'])
 def purchasePlaces():
-    competition = [c for c in competitions if c['name'] == request.form['competition']][0]
-    club = [c for c in clubs if c['name'] == request.form['club']][0]
+    competition_name = request.form['competition']
+    club_name = request.form['club']
     placesRequired = int(request.form['places'])
-    competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
-    flash('Great-booking complete!')
+
+    # Trouver la compétition correspondante
+    competition = next((c for c in competitions if c['name'] == competition_name), None)
+    club = next((c for c in clubs if c['name'] == club_name), None)
+
+    club_points = int(club['points'])
+    if competition and club:
+        if placesRequired > club_points or placesRequired == 0:
+            points_not_accorded = placesRequired - club_points
+            rest_points = placesRequired - points_not_accorded
+            if rest_points > 0:
+                flash(f'Your points balance is insufficient; we were only able to reserve {rest_points} points.')
+                club['points'] = int(club['points']) - rest_points
+                competition['numberOfPlaces'] = int(competition['numberOfPlaces']) - rest_points
+
+            elif rest_points <= 0:
+                flash(f'Your points balance is insufficient;')
+        else:
+            club['points'] = int(club['points']) - placesRequired
+            competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
+
+            flash('Great-booking complete!')
+
+    else:
+        flash('Competition or club not found!')
+
     return render_template('welcome.html', club=club, competitions=competitions)
 
 
