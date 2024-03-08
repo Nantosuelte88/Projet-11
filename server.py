@@ -54,6 +54,8 @@ def purchasePlaces():
 # TODO: Add route for points display
 @app.route('/table')
 def displayBoard():
+    if not clubs:
+        flash('No clubs to currently display')
     return render_template('table.html', clubs=clubs)
 
 
