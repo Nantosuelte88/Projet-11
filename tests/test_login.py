@@ -1,5 +1,5 @@
 import pytest
-from flask import Flask, render_template
+from flask import Flask, render_template, url_for
 from server import app, loadClubs, loadCompetitions
 
 from server import index, showSummary
@@ -62,3 +62,11 @@ def test_showSummary_unknow_email(client):
     """
     response = client.post('/showSummary', data={'email': 'email_inconnu@example.com'})
     assert response.status_code == 302
+
+def test_logout(client):
+    """
+    Teste le bon fonctionnement du logout
+    """
+    response = client.get('/logout')
+    assert response.status_code == 302
+    assert response.headers['Location'] == url_for('index', _external=False)
