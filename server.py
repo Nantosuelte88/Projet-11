@@ -71,7 +71,8 @@ def purchasePlaces():
     # Trouver la compétition correspondante
     competition = next((c for c in competitions if c['name'] == competition_name), None)
     club = next((c for c in clubs if c['name'] == club_name), None)
-    if competition:
+    club_points = int(club['points'])
+    if competition and club:
         # Vérifier si le club a deja reservé des places dans cette competition
         club_competition = next((c for c in competition.get('clubs', []) if c['name'] == club_name), None)
 
@@ -80,7 +81,7 @@ def purchasePlaces():
         else:
             club_places_reserved = 0
 
-        # Verifier si le nombre total de places servées apres la demande
+        # Verifier si le nombre total de places reservées apres la demande
         total_club_places = club_places_reserved + placesRequired
 
         # Verifier si le nombre total de places servées depasse le maximum de places
@@ -96,9 +97,25 @@ def purchasePlaces():
         club_competition['placesReserved'] += placesRequired
         competition['numberOfPlaces'] = int(competition['numberOfPlaces']) - placesRequired
         flash(f'Great-booking complete! You have reserved {placesRequired} place(s)')
+        if placesRequired > club_points or placesRequired == 0:
+            points_not_accorded = placesRequired - club_points
+            rest_points = placesRequired - points_not_accorded
+            if rest_points > 0:
+                flash(f'Your points balance is insufficient; we were only able to reserve {rest_points} points.')
+                club['points'] = int(club['points']) - rest_points
+                competition['numberOfPlaces'] = int(competition['numberOfPlaces']) - rest_points
+
+            elif rest_points <= 0:
+                flash(f'Your points balance is insufficient;')
+        else:
+            club['points'] = int(club['points']) - placesRequired
+            competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
+
+            flash('Great-booking complete!')
+
 
     else:
-        flash('Competition not found!')
+        flash('Competition or club not found!')
     return render_template('welcome.html', club=club, competitions=competitions, date_today=date_today)
 
 
