@@ -136,6 +136,11 @@ def purchasePlaces():
     return render_template('welcome.html', club=club, competitions=competitions, date_today=date_today)
 
 # TODO: Add route for points display
+@app.route('/table')
+def displayBoard():
+    if not clubs:
+        flash('No clubs to currently display')
+    return render_template('table.html', clubs=clubs)
 
 
 @app.route('/logout')
