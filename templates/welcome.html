@@ -24,7 +24,13 @@
             Date: {{comp['date']}}</br>
             Number of Places: {{comp['numberOfPlaces']}}
             {%if comp['numberOfPlaces']|int >0%}
-            <a href="{{ url_for('book',competition=comp['name'],club=club['name']) }}">Book Places</a>
+                {% set comp_date_obj = comp['date'] | to_datetime %}
+                {% set comp_date_obj_date = comp_date_obj.date() %} {# Extraction de la date #}
+                {% if comp_date_obj_date > date_today %}
+                    <a href="{{ url_for('book', competition=comp['name'], club=club['name']) }}">Book Places</a>
+                {% else %}
+                    <p>This competition has already passed.</p>
+                {% endif %}
             {%endif%}
         </li>
         <hr />
