@@ -36,11 +36,20 @@ def index():
 
 @app.route('/showSummary',methods=['POST'])
 def showSummary():
-    club = [club for club in clubs if club['email'] == request.form['email']][0]
     # Récupérer la date du jour
     date_today = datetime.today().date()
-    return render_template('welcome.html',club=club,competitions=competitions,date_today=date_today)
+    email = request.form['email']
 
+    if not email:
+        flash("The email cannot be empty.", "error")
+        return redirect(url_for('index'))
+
+    club = next((club for club in clubs if club['email'] == request.form['email']), None)
+    if club is None:
+        flash("the email isn't found.", "error")
+        return redirect(url_for('index'))
+    
+    return render_template('welcome.html', club=club, competitions=competitions, date_today=date_today)
 
 @app.route('/book/<competition>/<club>')
 def book(competition,club):
