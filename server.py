@@ -1,8 +1,8 @@
 import json
-from flask import Flask,render_template,request,redirect,flash,url_for
+from flask import Flask, render_template, request, redirect, flash,url_for
 from datetime import datetime
 
-
+# Le nombre maximum de places pouvant être accordées à un club pour une compétition
 MAX_PLACES = 12
 
 def loadClubs():
@@ -32,10 +32,16 @@ clubs = loadClubs()
 
 @app.route('/')
 def index():
+    """
+    Affiche la page de connexion
+    """
     return render_template('index.html')
 
 @app.route('/showSummary',methods=['POST'])
 def showSummary():
+    """
+    Vérifie l'email, si il est correct affiche la page d'accueil, sinon redirige vers la page de connexion
+    """
     # Récupérer la date du jour
     date_today = datetime.today().date()
     email = request.form['email']
@@ -52,13 +58,17 @@ def showSummary():
     return render_template('welcome.html', club=club, competitions=competitions, date_today=date_today)
 
 @app.route('/book/<competition>/<club>')
-def book(competition,club):
+def book(competition, club):
+    """
+    Affiche les competitions et verifie que la date de celle-ci soit bonne pour pouvoir reserver
+    """
     date_today = datetime.today().date()
-    foundClub = [c for c in clubs if c['name'] == club][0]
+    foundClub = next((c for c in clubs if c['name'] == club), None)
     foundCompetition = next((c for c in competitions if c['name'] == competition), None)
     if foundClub and foundCompetition:
         competition_date = datetime.strptime(foundCompetition['date'], '%Y-%m-%d %H:%M:%S').date()
-        print(foundCompetition, 'date:', competition_date)
+
+        # Si la date de la compétition est supérieur à la date actuelle alors on peut acceder à la reservation
         if competition_date > datetime.today().date():
             return render_template('booking.html',club=foundClub,competition=foundCompetition)
         else:
@@ -68,10 +78,13 @@ def book(competition,club):
     else:
         flash("Something went wrong-please try again")
         return render_template('welcome.html', club=club, competitions=competitions, date_today=date_today)
-
-
+    
 @app.route('/purchasePlaces',methods=['POST'])
 def purchasePlaces():
+    """
+    Permet de réserver une/des place.s pour une competition, sous certaines conditions
+    """
+    # Récupère la date du jour, le nom de la compétition, le nom du club et le nombre de places demandées
     date_today = datetime.today().date()
     competition_name = request.form['competition']
     club_name = request.form['club']
@@ -80,56 +93,63 @@ def purchasePlaces():
     # Trouver la compétition correspondante
     competition = next((c for c in competitions if c['name'] == competition_name), None)
     club = next((c for c in clubs if c['name'] == club_name), None)
+    # Obtient le nombre de points du club
     club_points = int(club['points'])
+    
     if competition and club:
-        # Vérifier si le club a deja reservé des places dans cette competition
-        club_competition = next((c for c in competition.get('clubs', []) if c['name'] == club_name), None)
-
-        if club_competition:
-            club_places_reserved = club_competition.get('placesReserved', 0)
+        if placesRequired <= 0:
+            flash('Please enter a valid number.')
         else:
-            club_places_reserved = 0
+            # Verification des places demandées et des points du club
+            if club_points <= 0:
+                flash('You have no more points.')
+            else:
+                # Si le nombre de places demandées est supérieur au nombre de points du club
+                if placesRequired > club_points:
+                    # Calcule le nombre de places demandées en trop
+                    places_not_accorded = placesRequired - club_points
+                    # Calcule les places qui pourraient être accordées
+                    placesRequired = placesRequired - places_not_accorded
 
-        # Verifier si le nombre total de places reservées apres la demande
-        total_club_places = club_places_reserved + placesRequired
+                    if placesRequired <= 0:
+                        flash(f'Your points balance is insufficient;')
+                    else:
+                        flash(f'Your points balance is insufficient; we were only able to reserve {placesRequired} places.')
 
-        # Verifier si le nombre total de places servées depasse le maximum de places
-        if total_club_places > MAX_PLACES:
-            # Réduire le nombres de places voulues pour respecter la limite
-            placesRequired = MAX_PLACES - club_places_reserved
-            flash(f'You can only reserve up to {placesRequired} places due to the maximum limit of 12 places!')
+                # Vérifie si le club a déjà réservé des places dans cette compétition
+                club_competition = next((c for c in competition.get('clubs', []) if c['name'] == club_name), None)
+                if club_competition:
+                    # Si le club a déjà réservé des places, récupère le nombre de places déjà réservées
+                    club_places_reserved = club_competition.get('placesReserved', 0)
+                else:
+                    # Si le club n'a pas encore réservé de places, initialise le nombre de places réservées à 0
+                    club_places_reserved = 0
 
-        # Mettre à jour le nombre de places reservées pour le club dans la competition
-        if not club_competition:
-            club_competition = {'name': club_name, 'placesReserved': 0}
-            competition.setdefault('clubs', []).append(club_competition)
-        club_competition['placesReserved'] += placesRequired
-        competition['numberOfPlaces'] = int(competition['numberOfPlaces']) - placesRequired
-        flash(f'Great-booking complete! You have reserved {placesRequired} place(s)')
-        if placesRequired > club_points or placesRequired == 0:
-            points_not_accorded = placesRequired - club_points
-            rest_points = placesRequired - points_not_accorded
-            if rest_points > 0:
-                flash(f'Your points balance is insufficient; we were only able to reserve {rest_points} points.')
-                club['points'] = int(club['points']) - rest_points
-                competition['numberOfPlaces'] = int(competition['numberOfPlaces']) - rest_points
+                # Calcule le nombre total de places après la demande
+                total_club_places = club_places_reserved + placesRequired
 
-            elif rest_points <= 0:
-                flash(f'Your points balance is insufficient;')
-        else:
-            club['points'] = int(club['points']) - placesRequired
-            competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
+                # Vérifie si le nombre total de places réservées dépasse le maximum de places
+                if total_club_places > MAX_PLACES:
+                    # Réduit le nombre de places souhaitées pour respecter la limite
+                    placesRequired = MAX_PLACES - club_places_reserved
+                    flash(f'You can only reserve up to {placesRequired} places due to the maximum limit of 12 places per competition!')
 
-            flash('Great-booking complete!')
+                # Met à jour le nombre de places réservées pour le club dans la compétition
+                if not club_competition:
+                    # Si le club n'a pas encore réservé de places dans cette compétition
+                    # Crée un nouvel enregistrement pour le club avec le nombre de places réservées initialisé à 0
+                    club_competition = {'name': club_name, 'placesReserved': 0}
+                    # Ajoute le nouvel enregistrement du club à la liste des clubs de la compétition
+                    competition.setdefault('clubs', []).append(club_competition)
 
-        if int(competition['numberOfPlaces']) >= placesRequired:
-            # Deduct places from the competition
-            competition['numberOfPlaces'] = int(competition['numberOfPlaces']) - placesRequired
-            # Deduct points from the club
-            club['points'] = str(int(club['points']) - placesRequired)
-            flash('Great-booking complete!')
-        else:
-            flash('Not enough places available for booking!')
+                if placesRequired > 0:
+                    club_competition['placesReserved'] += placesRequired
+
+                    # Met à jour les points du club ainsi que le nombre de places de la compétition
+                    club['points'] = int(club['points']) - placesRequired
+                    competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
+                    
+                    flash(f'Great-booking complete! You have reserved {placesRequired} place(s)')
 
     else:
         flash('Competition or club not found!')
@@ -138,11 +158,16 @@ def purchasePlaces():
 # TODO: Add route for points display
 @app.route('/table')
 def displayBoard():
+    """
+    Affiche un tableau des clubs avec leurs points, si aucun club n'est chargé on affiche un message
+    """
     if not clubs:
         flash('No clubs to currently display')
     return render_template('table.html', clubs=clubs)
 
-
 @app.route('/logout')
 def logout():
+    """
+    Pour se déconnecter
+    """
     return redirect(url_for('index'))
