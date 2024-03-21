@@ -8,25 +8,34 @@ from datetime import datetime
 MAX_PLACES = 12
 
 def loadClubs():
+    """
+    Charge les clubs à partir du fichier clubs.json
+    """
     with open('clubs.json') as c:
          listOfClubs = json.load(c)['clubs']
          return listOfClubs
 
 
 def loadCompetitions():
+    """
+    Charge les competitions à partir du fichier competitions.json
+    """
     with open('competitions.json') as comps:
          listOfCompetitions = json.load(comps)['competitions']
          return listOfCompetitions
 
-
+# Création d'une instance de l'application Flask et définition de la clé secrète pour les cookies de session
 app = Flask(__name__)
 app.secret_key = 'something_special'
 
+# Configuration et initialisation de la gestion des sessions avec le stockage sur le système de fichiers
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
 
-# Définition d'une fonction pour convertir une chaîne de caractères en objet datetime
 def to_datetime(date_string):
+    """
+    Convertit une chaîne de caractères en objet datetime.
+    """
     return datetime.strptime(date_string, "%Y-%m-%d %H:%M:%S")
 
 # Passer la fonction to_datetime au modèle Jinja2
@@ -36,6 +45,9 @@ competitions = loadCompetitions()
 clubs = loadClubs()
 
 def login_required(f):
+    """
+    Décorateur pour vérifier si l'utilisateur est connecté avant d'accéder à une page protégée.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'email' not in session:
@@ -85,7 +97,7 @@ def book(competition, club):
     if foundClub and foundCompetition:
         competition_date = datetime.strptime(foundCompetition['date'], '%Y-%m-%d %H:%M:%S').date()
 
-        # Si la date de la compétition est supérieur à la date actuelle alors on peut acceder à la reservation
+        # Vérification de la date de la compétition pour autoriser la réservation
         if competition_date > datetime.today().date():
             return render_template('booking.html',club=foundClub,competition=foundCompetition)
         else:
