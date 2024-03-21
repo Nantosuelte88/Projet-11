@@ -9,6 +9,18 @@
     <div>
         <a href="/table">View clubs' points table</a>
     </div>
+    <div>
+        {% with messages = get_flashed_messages()%}
+            {% if messages %}
+                <ul>
+            {% for message in messages %}
+                    <li>{{message}}</li>
+                {% endfor %}
+            </ul>
+            {% endif%}
+        {%endwith%}
+
+    </div>
     Please enter your secretary email to continue:
     <form action="showSummary" method="post">
         <label for="email">Email:</label>

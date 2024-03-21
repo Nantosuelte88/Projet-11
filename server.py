@@ -1,5 +1,7 @@
 import json
-from flask import Flask, render_template, request, redirect, flash,url_for
+from flask import Flask, render_template, request, redirect, flash, url_for, session
+from flask_session import Session
+from functools import wraps
 from datetime import datetime
 
 # Le nombre maximum de places pouvant être accordées à un club pour une compétition
@@ -20,6 +22,9 @@ def loadCompetitions():
 app = Flask(__name__)
 app.secret_key = 'something_special'
 
+app.config['SESSION_TYPE'] = 'filesystem'
+Session(app)
+
 # Définition d'une fonction pour convertir une chaîne de caractères en objet datetime
 def to_datetime(date_string):
     return datetime.strptime(date_string, "%Y-%m-%d %H:%M:%S")
@@ -29,6 +34,15 @@ app.jinja_env.filters['to_datetime'] = to_datetime
 
 competitions = loadCompetitions()
 clubs = loadClubs()
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'email' not in session:
+            flash("You need to be logged in to access this page.", "error")
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @app.route('/')
 def index():
@@ -55,9 +69,12 @@ def showSummary():
         flash("the email isn't found.", "error")
         return redirect(url_for('index'))
     
+    session['email'] = email
+
     return render_template('welcome.html', club=club, competitions=competitions, date_today=date_today)
 
 @app.route('/book/<competition>/<club>')
+@login_required
 def book(competition, club):
     """
     Affiche les competitions et verifie que la date de celle-ci soit bonne pour pouvoir reserver
@@ -80,6 +97,7 @@ def book(competition, club):
         return render_template('welcome.html', club=club, competitions=competitions, date_today=date_today)
     
 @app.route('/purchasePlaces',methods=['POST'])
+@login_required
 def purchasePlaces():
     """
     Permet de réserver une/des place.s pour une competition, sous certaines conditions
@@ -93,10 +111,11 @@ def purchasePlaces():
     # Trouver la compétition correspondante
     competition = next((c for c in competitions if c['name'] == competition_name), None)
     club = next((c for c in clubs if c['name'] == club_name), None)
-    # Obtient le nombre de points du club
-    club_points = int(club['points'])
     
     if competition and club:
+        # Obtient le nombre de points du club
+        club_points = int(club['points'])
+        
         if placesRequired <= 0:
             flash('Please enter a valid number.')
         else:
@@ -166,8 +185,10 @@ def displayBoard():
     return render_template('table.html', clubs=clubs)
 
 @app.route('/logout')
+@login_required
 def logout():
     """
     Pour se déconnecter
     """
+    session.pop('email', None) # Supprime l'email de la session
     return redirect(url_for('index'))

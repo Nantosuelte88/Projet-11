@@ -3,5 +3,8 @@ include
 lib
 .Python
 .envrc
+.pytest_cache/
 __pycache__
 env/
+flask_session/
+.coverage
