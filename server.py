@@ -127,60 +127,73 @@ def purchasePlaces():
     if competition and club:
         # Obtient le nombre de points du club
         club_points = int(club['points'])
-        
-        if placesRequired <= 0:
-            flash('Please enter a valid number.')
+        competition_places = int(competition['numberOfPlaces'])
+
+        # On verifie le nombre de places disponibles dans la competition
+        if competition_places <= 0:
+            flash('No more places available in this competition.')
         else:
-            # Verification des places demandées et des points du club
-            if club_points <= 0:
-                flash('You have no more points.')
+
+            if placesRequired <= 0:
+                flash('Please enter a valid number.')
             else:
-                # Si le nombre de places demandées est supérieur au nombre de points du club
-                if placesRequired > club_points:
-                    # Calcule le nombre de places demandées en trop
-                    places_not_accorded = placesRequired - club_points
-                    # Calcule les places qui pourraient être accordées
-                    placesRequired = placesRequired - places_not_accorded
 
-                    if placesRequired <= 0:
-                        flash(f'Your points balance is insufficient;')
-                    else:
-                        flash(f'Your points balance is insufficient; we were only able to reserve {placesRequired} places.')
+                # Si le nombre de places demandées est superieur au nombre de places encore disponibles dans la competition, 
+                # on reduit le nombre de places demandées
+                if placesRequired > competition_places:
+                    places_not_available = placesRequired - competition_places
+                    placesRequired -= places_not_available
 
-                # Vérifie si le club a déjà réservé des places dans cette compétition
-                club_competition = next((c for c in competition.get('clubs', []) if c['name'] == club_name), None)
-                if club_competition:
-                    # Si le club a déjà réservé des places, récupère le nombre de places déjà réservées
-                    club_places_reserved = club_competition.get('placesReserved', 0)
+                # Verification des places demandées et des points du club
+                if club_points <= 0:
+                    flash('You have no more points.')
                 else:
-                    # Si le club n'a pas encore réservé de places, initialise le nombre de places réservées à 0
-                    club_places_reserved = 0
+                    # Si le nombre de places demandées est supérieur au nombre de points du club
+                    if placesRequired > club_points:
+                        # Calcule le nombre de places demandées en trop
+                        places_not_accorded = placesRequired - club_points
+                        # Calcule les places qui pourraient être accordées
+                        placesRequired = placesRequired - places_not_accorded
 
-                # Calcule le nombre total de places après la demande
-                total_club_places = club_places_reserved + placesRequired
+                        if placesRequired <= 0:
+                            flash(f'Your points balance is insufficient;')
+                        else:
+                            flash(f'Your points balance is insufficient; we were only able to reserve {placesRequired} places.')
 
-                # Vérifie si le nombre total de places réservées dépasse le maximum de places
-                if total_club_places > MAX_PLACES:
-                    # Réduit le nombre de places souhaitées pour respecter la limite
-                    placesRequired = MAX_PLACES - club_places_reserved
-                    flash(f'You can only reserve up to {placesRequired} places due to the maximum limit of 12 places per competition!')
+                    # Vérifie si le club a déjà réservé des places dans cette compétition
+                    club_competition = next((c for c in competition.get('clubs', []) if c['name'] == club_name), None)
+                    if club_competition:
+                        # Si le club a déjà réservé des places, récupère le nombre de places déjà réservées
+                        club_places_reserved = club_competition.get('placesReserved', 0)
+                    else:
+                        # Si le club n'a pas encore réservé de places, initialise le nombre de places réservées à 0
+                        club_places_reserved = 0
 
-                # Met à jour le nombre de places réservées pour le club dans la compétition
-                if not club_competition:
-                    # Si le club n'a pas encore réservé de places dans cette compétition
-                    # Crée un nouvel enregistrement pour le club avec le nombre de places réservées initialisé à 0
-                    club_competition = {'name': club_name, 'placesReserved': 0}
-                    # Ajoute le nouvel enregistrement du club à la liste des clubs de la compétition
-                    competition.setdefault('clubs', []).append(club_competition)
+                    # Calcule le nombre total de places après la demande
+                    total_club_places = club_places_reserved + placesRequired
 
-                if placesRequired > 0:
-                    club_competition['placesReserved'] += placesRequired
+                    # Vérifie si le nombre total de places réservées dépasse le maximum de places
+                    if total_club_places > MAX_PLACES:
+                        # Réduit le nombre de places souhaitées pour respecter la limite
+                        placesRequired = MAX_PLACES - club_places_reserved
+                        flash(f'You can only reserve up to {placesRequired} places due to the maximum limit of 12 places per competition!')
 
-                    # Met à jour les points du club ainsi que le nombre de places de la compétition
-                    club['points'] = int(club['points']) - placesRequired
-                    competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
-                    
-                    flash(f'Great-booking complete! You have reserved {placesRequired} place(s)')
+                    # Met à jour le nombre de places réservées pour le club dans la compétition
+                    if not club_competition:
+                        # Si le club n'a pas encore réservé de places dans cette compétition
+                        # Crée un nouvel enregistrement pour le club avec le nombre de places réservées initialisé à 0
+                        club_competition = {'name': club_name, 'placesReserved': 0}
+                        # Ajoute le nouvel enregistrement du club à la liste des clubs de la compétition
+                        competition.setdefault('clubs', []).append(club_competition)
+
+                    if placesRequired > 0:
+                        club_competition['placesReserved'] += placesRequired
+
+                        # Met à jour les points du club ainsi que le nombre de places de la compétition
+                        club['points'] = int(club['points']) - placesRequired
+                        competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
+                        
+                        flash(f'Great-booking complete! You have reserved {placesRequired} place(s)')
 
     else:
         flash('Competition or club not found!')
