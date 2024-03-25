@@ -35,6 +35,13 @@
 
     - You should now be ready to test the application. In the directory, type either <code>flask run</code> or <code>python -m flask run</code>. The app should respond with an address you should be able to go to using your browser.
 
+    If the above technique doesn't work, you can try the following steps:
+    
+    - Open your command prompt or terminal.
+    - Set the environment variable by running the command: <code>$env:FLASK_APP = "server.py"</code> (for Windows) or <code>export FLASK_APP=server.py</code> (for macOS/Linux).
+    - Then, run the command: <code>python -m flask run</code>.
+    - The app should now start running, and you should be able to access it using the provided address in your browser.
+
 4. Current Setup
 
     The app is powered by [JSON files](https://www.tutorialspoint.com/json/json_quick_guide.htm). This is to get around having a DB until we actually need one. The main ones are:
@@ -44,8 +51,8 @@
 
 5. Testing
 
-    You are free to use whatever testing framework you like-the main thing is that you can show what tests you are using.
+    To test the various functionalities of the application, you can run Pytest from the terminal using either <code>pytest</code> or <code>pytest -file name</code>.
 
-    We also like to show how well we're testing, so there's a module called 
-    [coverage](https://coverage.readthedocs.io/en/coverage-5.1/) you should add to your project.
+    To check the test coverage, you can run <code>pytest --cov=server</code> in the terminal.
+
 
